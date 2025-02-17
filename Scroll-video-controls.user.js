@@ -24,7 +24,6 @@
     displayDiv.style.fontSize = '16px';
     displayDiv.style.zIndex = '9999';
     displayDiv.style.display = 'empty';
-    document.body.appendChild(displayDiv);
 
     function updateDisplay(video) {
         displayDiv.textContent = '';
@@ -55,6 +54,7 @@
     }
 
     videos.forEach(video => {
+        document.body.appendChild(displayDiv);
         video.addEventListener('mousedown', function (event) {
             if (event.button === 1) {
                 event.preventDefault();
