@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         Scroll wheel video controls
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  Use scroll wheel to control video volume and playback speed
 // @author       https://github.com/AnttiHi
 // @match        *://*/*
 // @grant        none
+// @run-at       document-end
 // ==/UserScript==
 
 (function () {
@@ -25,11 +26,12 @@
     displayDiv.style.zIndex = '9999';
     displayDiv.style.display = 'empty';
 
-    function updateDisplay(video) {
+    function updateDisplay(video, volume) {
         displayDiv.textContent = '';
 
         const volumeText = document.createElement('span');
-        volumeText.textContent = `Volume: ${Math.round(video.volume * 100)}%`;
+        volumeText.style.color = volume > 1 ? 'LightPink' : 'white';
+        volumeText.textContent = `Volume: ${Math.round(volume * 100)}%`;
 
         const speedText = document.createElement('span');
         speedText.textContent = `Speed: ${video.playbackRate.toFixed(2)}x`;
@@ -54,6 +56,24 @@
     }
 
     videos.forEach(video => {
+        const audioCtx = new AudioContext();
+        const source = audioCtx.createMediaElementSource(video);
+        let volume = video.volume;
+
+        const comp = audioCtx.createDynamicsCompressor();
+        comp.threshold.setValueAtTime(-50, audioCtx.currentTime);
+        comp.knee.setValueAtTime(40, audioCtx.currentTime);
+        comp.ratio.setValueAtTime(1, audioCtx.currentTime);
+        comp.attack.setValueAtTime(0, audioCtx.currentTime);
+        comp.release.setValueAtTime(0.25, audioCtx.currentTime);
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(1, audioCtx.currentTime);
+
+        source.connect(gain);
+        gain.connect(comp);
+        comp.connect(audioCtx.destination);
+
         document.body.appendChild(displayDiv);
         video.addEventListener('mousedown', function (event) {
             if (event.button === 1) {
@@ -65,7 +85,7 @@
                 else {
                     video.playbackRate = prevSpeed;
                 }
-                updateDisplay(video);
+                updateDisplay(video, volume);
             }
         });
         video.addEventListener('wheel', function (event) {
@@ -78,15 +98,26 @@
                     } else if (event.deltaY > 0) {
                         video.playbackRate = Math.max(video.playbackRate - 0.2, 0.4);
                     }
-                    updateDisplay(video);
+                    updateDisplay(video, volume);
                 } else {
                     // Adjust volume
                     if (event.deltaY < 0) {
-                        video.volume = Math.min(video.volume + 0.05, 1);
+                        if (video.volume < 1) {
+                            video.volume = Math.min(video.volume + 0.05, 1);
+                        } else {
+                            comp.ratio.setValueAtTime(Math.min(comp.ratio.value + 0.5, 10), audioCtx.currentTime);
+                            gain.gain.setValueAtTime(Math.min(gain.gain.value + 0.5, 10), audioCtx.currentTime);
+                        }
                     } else if (event.deltaY > 0) {
-                        video.volume = Math.max(video.volume - 0.05, 0);
+                        if (gain.gain.value > 1) {
+                            comp.ratio.setValueAtTime(Math.max(comp.ratio.value - 0.5, 1), audioCtx.currentTime);
+                            gain.gain.setValueAtTime(Math.max(gain.gain.value - 0.5, 1), audioCtx.currentTime);
+                        } else {
+                            video.volume = Math.max(video.volume - 0.05, 0);
+                        }
                     }
-                    updateDisplay(video);
+                    volume = video.volume + (gain.gain.value * 0.1);
+                    updateDisplay(video, volume);
                 }
             }
         });
