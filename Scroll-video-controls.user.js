@@ -11,10 +11,10 @@
 
 (function () {
     'use strict';
-
-    const videos = document.querySelectorAll('video');
+    let videos = null;
     let prevSpeed = 1;
     let timer = null;
+    let vidCount = 0;
 
     const displayDiv = document.createElement('div');
     displayDiv.style.position = 'absolute';
@@ -25,6 +25,16 @@
     displayDiv.style.fontSize = '16px';
     displayDiv.style.zIndex = '9999';
     displayDiv.style.display = 'empty';
+
+    const observer = new MutationObserver(() => {
+        videos = document.querySelectorAll('video');
+        if (videos.length != vidCount) {
+            vidCount = videos.length;
+            addControls();
+        }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
 
     function updateDisplay(video, volume) {
         displayDiv.textContent = '';
@@ -55,71 +65,75 @@
         }, 1500);
     }
 
-    videos.forEach(video => {
-        const audioCtx = new AudioContext();
-        const source = audioCtx.createMediaElementSource(video);
-        let volume = video.volume;
+    addControls();
 
-        const comp = audioCtx.createDynamicsCompressor();
-        comp.threshold.setValueAtTime(-50, audioCtx.currentTime);
-        comp.knee.setValueAtTime(40, audioCtx.currentTime);
-        comp.ratio.setValueAtTime(1, audioCtx.currentTime);
-        comp.attack.setValueAtTime(0, audioCtx.currentTime);
-        comp.release.setValueAtTime(0.25, audioCtx.currentTime);
+    function addControls() {
+        videos.forEach(video => {
+            const audioCtx = new AudioContext();
+            const source = audioCtx.createMediaElementSource(video);
+            let volume = video.volume;
 
-        const gain = audioCtx.createGain();
-        gain.gain.setValueAtTime(1, audioCtx.currentTime);
+            const comp = audioCtx.createDynamicsCompressor();
+            comp.threshold.setValueAtTime(-50, audioCtx.currentTime);
+            comp.knee.setValueAtTime(40, audioCtx.currentTime);
+            comp.ratio.setValueAtTime(1, audioCtx.currentTime);
+            comp.attack.setValueAtTime(0, audioCtx.currentTime);
+            comp.release.setValueAtTime(0.25, audioCtx.currentTime);
 
-        source.connect(gain);
-        gain.connect(comp);
-        comp.connect(audioCtx.destination);
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(1, audioCtx.currentTime);
 
-        document.body.appendChild(displayDiv);
-        video.addEventListener('mousedown', function (event) {
-            if (event.button === 1) {
-                event.preventDefault();
-                if (video.playbackRate != 1) {
-                    prevSpeed = video.playbackRate;
-                    video.playbackRate = 1;
-                }
-                else {
-                    video.playbackRate = prevSpeed;
-                }
-                updateDisplay(video, volume);
-            }
-        });
-        video.addEventListener('wheel', function (event) {
-            if (event.target === video) {
-                event.preventDefault();
-                if (event.ctrlKey) {
-                    // Adjust playback speed
-                    if (event.deltaY < 0) {
-                        video.playbackRate = Math.min(video.playbackRate + 0.2, 3);
-                    } else if (event.deltaY > 0) {
-                        video.playbackRate = Math.max(video.playbackRate - 0.2, 0.4);
+            source.connect(gain);
+            gain.connect(comp);
+            comp.connect(audioCtx.destination);
+
+            document.body.appendChild(displayDiv);
+            video.addEventListener('mousedown', function (event) {
+                if (event.button === 1) {
+                    event.preventDefault();
+                    if (video.playbackRate != 1) {
+                        prevSpeed = video.playbackRate;
+                        video.playbackRate = 1;
+                    }
+                    else {
+                        video.playbackRate = prevSpeed;
                     }
                     updateDisplay(video, volume);
-                } else {
-                    // Adjust volume
-                    if (event.deltaY < 0) {
-                        if (video.volume < 1) {
-                            video.volume = Math.min(video.volume + 0.05, 1);
-                        } else {
-                            comp.ratio.setValueAtTime(Math.min(comp.ratio.value + 0.5, 10), audioCtx.currentTime);
-                            gain.gain.setValueAtTime(Math.min(gain.gain.value + 0.5, 10), audioCtx.currentTime);
-                        }
-                    } else if (event.deltaY > 0) {
-                        if (gain.gain.value > 1) {
-                            comp.ratio.setValueAtTime(Math.max(comp.ratio.value - 0.5, 1), audioCtx.currentTime);
-                            gain.gain.setValueAtTime(Math.max(gain.gain.value - 0.5, 1), audioCtx.currentTime);
-                        } else {
-                            video.volume = Math.max(video.volume - 0.05, 0);
-                        }
-                    }
-                    volume = video.volume + (gain.gain.value * 0.1);
-                    updateDisplay(video, volume);
                 }
-            }
+            });
+            video.addEventListener('wheel', function (event) {
+                if (event.target === video) {
+                    event.preventDefault();
+                    if (event.ctrlKey) {
+                        // Adjust playback speed
+                        if (event.deltaY < 0) {
+                            video.playbackRate = Math.min(video.playbackRate + 0.2, 3);
+                        } else if (event.deltaY > 0) {
+                            video.playbackRate = Math.max(video.playbackRate - 0.2, 0.4);
+                        }
+                        updateDisplay(video, volume);
+                    } else {
+                        // Adjust volume
+                        if (event.deltaY < 0) {
+                            if (video.volume < 1) {
+                                video.volume = Math.min(video.volume + 0.05, 1);
+                            } else {
+                                comp.ratio.setValueAtTime(Math.min(comp.ratio.value + 0.5, 10), audioCtx.currentTime);
+                                gain.gain.setValueAtTime(Math.min(gain.gain.value + 0.5, 10), audioCtx.currentTime);
+                            }
+                        } else if (event.deltaY > 0) {
+                            if (gain.gain.value > 1) {
+                                comp.ratio.setValueAtTime(Math.max(comp.ratio.value - 0.5, 1), audioCtx.currentTime);
+                                gain.gain.setValueAtTime(Math.max(gain.gain.value - 0.5, 1), audioCtx.currentTime);
+                            } else {
+                                video.volume = Math.max(video.volume - 0.05, 0);
+                            }
+                        }
+                        volume = video.volume + (gain.gain.value * 0.1);
+                        updateDisplay(video, volume);
+                    }
+                }
+            });
         });
-    });
+    }
 })();
