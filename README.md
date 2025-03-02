@@ -6,4 +6,6 @@ Install a userscript manager like Tampermonkey ([Chrome](https://chromewebstore.
 
 Hover the mouse cursor over a video and use the scroll wheel to change the video volume or ctrl + scroll wheel to control the playback speed. After adjusting the playback speed, you can switch between the adjusted speed and the original speed using the middle mouse button.
 
+When adjusting volume to over 100%, a dynamic compressor is used to prevent excessive spikes in volume.
+
 Made for YouTube but works on some other sites too.
