@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Scroll wheel video controls
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.1.1
 // @description  Use scroll wheel to control video volume and playback speed
 // @author       https://github.com/AnttiHi
 // @match        *://*/*
@@ -24,7 +24,7 @@
     displayDiv.style.borderRadius = '5px';
     displayDiv.style.fontSize = '16px';
     displayDiv.style.zIndex = '9999';
-    displayDiv.style.display = 'empty';
+    displayDiv.style.display = 'none';
 
     const observer = new MutationObserver(() => {
         videos = document.querySelectorAll('video');
