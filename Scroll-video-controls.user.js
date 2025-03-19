@@ -1,14 +1,13 @@
 // ==UserScript==
 // @name         Scroll wheel video controls
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.1.2
 // @description  Use scroll wheel to control video volume and playback speed
 // @author       https://github.com/AnttiHi
 // @match        *://*/*
 // @grant        none
 // @run-at       document-end
 // ==/UserScript==
-
 (function () {
     'use strict';
     let videos = null;
@@ -24,7 +23,7 @@
     displayDiv.style.borderRadius = '5px';
     displayDiv.style.fontSize = '16px';
     displayDiv.style.zIndex = '9999';
-    displayDiv.style.display = 'empty';
+    displayDiv.style.display = 'none';
 
     const observer = new MutationObserver(() => {
         videos = document.querySelectorAll('video');
@@ -65,10 +64,14 @@
         }, 1500);
     }
 
-    addControls();
-
     function addControls() {
+        console.log("ADDING CONTROLS");
         videos.forEach(video => {
+            if (video.dataset.controlsAdded){
+                console.log("JOO");
+                return;
+            }
+            video.dataset.controlsAdded = "true";
             const audioCtx = new AudioContext();
             const source = audioCtx.createMediaElementSource(video);
             let volume = video.volume;
@@ -118,8 +121,8 @@
                             if (video.volume < 1) {
                                 video.volume = Math.min(video.volume + 0.05, 1);
                             } else {
-                                comp.ratio.setValueAtTime(Math.min(comp.ratio.value + 0.5, 10), audioCtx.currentTime);
-                                gain.gain.setValueAtTime(Math.min(gain.gain.value + 0.5, 10), audioCtx.currentTime);
+                                comp.ratio.setValueAtTime(Math.min(comp.ratio.value + 0.5, 11), audioCtx.currentTime);
+                                gain.gain.setValueAtTime(Math.min(gain.gain.value + 0.5, 11), audioCtx.currentTime);
                             }
                         } else if (event.deltaY > 0) {
                             if (gain.gain.value > 1) {
@@ -129,11 +132,12 @@
                                 video.volume = Math.max(video.volume - 0.05, 0);
                             }
                         }
-                        volume = video.volume + (gain.gain.value * 0.1);
+                        volume = video.volume + ((gain.gain.value - 1) * 0.1);
                         updateDisplay(video, volume);
                     }
                 }
             });
+
         });
     }
 })();
