@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         Scroll wheel video controls
 // @namespace    http://tampermonkey.net/
-// @version      1.1.2
+// @version      1.2.0
 // @description  Use scroll wheel to control video volume and playback speed
 // @author       https://github.com/AnttiHi
-// @match        *://*/*
+// @match        https://www.youtube.com/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=youtube.com
 // @grant        none
 // @run-at       document-end
 // ==/UserScript==
@@ -14,6 +15,10 @@
     let prevSpeed = 1;
     let timer = null;
     let vidCount = 0;
+
+    const audioCtx = new AudioContext();
+
+    let isMono = false;
 
     const displayDiv = document.createElement('div');
     displayDiv.style.position = 'absolute';
@@ -65,14 +70,13 @@
     }
 
     function addControls() {
-        console.log("ADDING CONTROLS");
         videos.forEach(video => {
-            if (video.dataset.controlsAdded){
-                console.log("JOO");
+            if (video.dataset.controlsAdded) {
                 return;
             }
             video.dataset.controlsAdded = "true";
-            const audioCtx = new AudioContext();
+            console.log("Controls added for: ", video);
+
             const source = audioCtx.createMediaElementSource(video);
             let volume = video.volume;
 
@@ -85,6 +89,10 @@
 
             const gain = audioCtx.createGain();
             gain.gain.setValueAtTime(1, audioCtx.currentTime);
+
+            const splitter = audioCtx.createChannelSplitter(2);
+
+            const merger = audioCtx.createChannelMerger(1);
 
             source.connect(gain);
             gain.connect(comp);
@@ -106,6 +114,7 @@
             });
             video.addEventListener('wheel', function (event) {
                 if (event.target === video) {
+                    console.log("video.volume = ", video.volume, " comp.ratio = ", comp.ratio.value, " gain.gain = ", gain.gain.value);
                     event.preventDefault();
                     if (event.ctrlKey) {
                         // Adjust playback speed
@@ -137,7 +146,26 @@
                     }
                 }
             });
-
+            document.addEventListener('keydown', function (event) {
+                if (event.key == 'n') {
+                    if (isMono) {
+                        source.connect(gain);
+                        source.disconnect(splitter);
+                        gain.gain.setValueAtTime(video.volume, audioCtx.currentTime);
+                        isMono = false;
+                        console.log("Changed to stereo");
+                    } else {
+                        source.connect(splitter);
+                        source.disconnect(gain);
+                        splitter.connect(merger, 0, 0);
+                        splitter.connect(merger, 1, 0);
+                        merger.connect(gain);
+                        gain.gain.setValueAtTime(video.volume * 0.5, audioCtx.currentTime);
+                        isMono = true;
+                        console.log("Changed to mono");
+                    }
+                }
+            });
         });
     }
 })();
