@@ -8,5 +8,3 @@ Hover the mouse cursor over a video and use the scroll wheel to change the video
 You can also switch between mono and stereo audio by pressing the 'N' key on the keyboard.
 
 When adjusting volume to over 100%, a dynamic compressor is used to prevent excessive spikes in volume.
-
-Made for YouTube but works on some other sites too.
