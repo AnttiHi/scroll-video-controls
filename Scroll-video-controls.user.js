@@ -99,8 +99,8 @@
             comp.connect(audioCtx.destination);
 
             document.body.appendChild(displayDiv);
-            document.addEventListener('keydown', function (event) {
-                if (event.key == 'b') {
+            video.addEventListener('mousedown', function (event) {
+                if (event.button === 1) {
                     event.preventDefault();
                     if (video.playbackRate != 1) {
                         prevSpeed = video.playbackRate;
